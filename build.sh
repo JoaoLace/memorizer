@@ -1,0 +1,1 @@
+gcc -std=c99 -Wall -I/usr/include -L/usr/local/lib/libraylib.so -o main src/main.c src/game.c -lraylib -lGL -lm -lpthread -ldl -lrt -lX11

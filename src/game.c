@@ -1,14 +1,20 @@
 #include "../lib/game.h"
+// LOGIC VARIABLES
 int currentLocation;
 int gameDifficulty;
 int board[3][3];
 int currentPlay;
+bool plays[10];
+bool rect_initd;
+bool animationEnded;
+bool mouseWasPressed;
 pos order[10];
 Rectangle text_EasyMode = {100, 100, 13 * 30, 30};
 Rectangle text_MediumMode = {100, 150, 13 * 15, 30};
 Rectangle text_HardMode = {100, 200, 13 * 13, 30};
 Rectangle rect_board[3][3];
 Color colors[3][3];
+Sound sound;
 // MAIN FUNCTION>
 void run()
 {
@@ -21,22 +27,29 @@ void run()
     }
 
     CloseWindow();
+    CloseAudioDevice();
 }
 // INIT VARIABLES
 void init()
 {
+    animationEnded = false;
+    mouseWasPressed = false;
+    rect_initd = false;
     srand(time(NULL));
     currentLocation = initialScreen;
     InitWindow(screenWidth, screenHeight, "Memorizer - Raylib");
+    InitAudioDevice();
+    sound = LoadSound("./resources/sound.mp3");
     SetTargetFPS(60);
-    initOrder();
+    // initOrder();
 }
 void initOrder()
 {
-    for (int x = 0; x < 10; x++)
+    for (int x = 0; x < 3 * gameDifficulty; x++)
     {
         order[x].x = rand() % 3;
         order[x].y = rand() % 3;
+        plays[x] = false;
     }
     for (int w = 0; w < 3; w++)
     {
@@ -61,8 +74,11 @@ void render()
         case gameScreen:
             render_gameScreen();
             break;
-        case endScreen:
-            render_endScreen();
+        case loseScreen:
+            render_loseScreen();
+            break;
+        case winScreen:
+            render_winScreen();
             break;
         default:
             break;
@@ -70,6 +86,10 @@ void render()
 
         EndDrawing();
     }
+}
+void render_winScreen()
+{
+    DrawText("YOU WON!!", 200, 300, 50, BLACK);
 }
 void render_initialScreen()
 {
@@ -83,8 +103,17 @@ void render_gameScreen()
     DrawText("Follow the Order", 200, 0, 50, BLACK);
     drawBoard();
     animateBoard();
+
+    if (animationEnded)
+    {
+        for (int x = 0; x < 10; x++)
+        {
+            updatePlay(x);
+        }
+    }
 }
-void render_endScreen()
+
+void render_loseScreen()
 {
     DrawText("At end Screen", 200, 300, 50, BLACK);
 }
@@ -109,16 +138,19 @@ void update_initialScreen()
         {
             currentLocation = gameScreen;
             gameDifficulty = easy;
+            initOrder();
         }
         else if (CheckCollisionPointRec(GetMousePosition(), text_MediumMode))
         {
             currentLocation = gameScreen;
             gameDifficulty = medium;
+            initOrder();
         }
         else if (CheckCollisionPointRec(GetMousePosition(), text_HardMode))
         {
             currentLocation = gameScreen;
             gameDifficulty = hard;
+            initOrder();
         }
     }
 }
@@ -129,8 +161,14 @@ void drawBoard()
         for (int h = 0; h < 3; h++)
         {
             DrawRectangle(160 * w + 170, 160 * h + 80, 150, 150, colors[w][h]);
+            if (!rect_initd)
+            {
+                Rectangle temp = {160 * w + 170, 160 * h + 80, 150, 150};
+                rect_board[w][h] = temp;
+            }
         }
     }
+    rect_initd = true;
 }
 void animateBoard()
 {
@@ -141,8 +179,9 @@ void animateBoard()
 
     frameCounter++;
 
-    if (frameCounter >= framesPerColor && currentOrderIndex < 11)
+    if (frameCounter >= framesPerColor && currentOrderIndex < 3 * gameDifficulty)
     {
+        PlaySound(sound);
         colors[order[currentOrderIndex].x][order[currentOrderIndex].y] = BLUE;
         frameCounter2++;
 
@@ -153,6 +192,51 @@ void animateBoard()
             frameCounter2 = 0;
             currentOrderIndex++;
         }
-        // frameCounter = 0;
+    }
+
+    if (currentOrderIndex >= 3 * gameDifficulty)
+    {
+        animationEnded = true;
+    }
+}
+
+void updatePlay(int currentPlay)
+{
+    if (!plays[currentPlay] && IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !mouseWasPressed)
+    {
+        mouseWasPressed = true;
+        for (int x = 0; x < 3; x++)
+        {
+            for (int y = 0; y < 3; y++)
+            {
+                if (CheckCollisionPointRec(GetMousePosition(), rect_board[x][y]))
+                {
+                    printf("User clicked in rect: %d %d\n", x, y);
+                    plays[currentPlay] = true;
+                    if (order[currentPlay].x != x || order[currentPlay].y != y)
+                        currentLocation = loseScreen;
+
+                    plays[currentPlay] = true;
+                    PlaySound(sound);
+                    colors[x][y] = BLUE;
+                    SetMouseCursor(MOUSE_CURSOR_ARROW);
+                    int countdown = 10;
+                    while (countdown > 0)
+                    {
+                        update();
+                        render();
+                        countdown--;
+                    }
+                    colors[x][y] = RED;
+                    if (currentPlay == (3 * gameDifficulty) - 1)
+                        currentLocation = winScreen;
+                    return;
+                }
+            }
+        }
+    }
+    else if (!IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+    {
+        mouseWasPressed = false;
     }
 }

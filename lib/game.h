@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 
 #define screenWidth 800
@@ -10,14 +11,15 @@ enum screenLocation
 {
     initialScreen = 0,
     gameScreen = 1,
-    endScreen = 2
+    loseScreen = 2,
+    winScreen = 3
 };
 
 enum gameDifficulty
 {
-    easy = 0,
-    medium = 1,
-    hard = 2
+    easy = 1,
+    medium = 2,
+    hard = 3
 };
 
 typedef struct
@@ -35,11 +37,14 @@ void render();
 
 void render_initialScreen();
 void render_gameScreen();
-void render_endScreen();
+void render_loseScreen();
+void render_winScreen();
 
 void update();
 
 void update_initialScreen();
+
+void updatePlay(int currentPlay);
 
 void drawBoard();
 void animateBoard();
